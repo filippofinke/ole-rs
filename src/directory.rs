@@ -249,14 +249,14 @@ impl DirectoryEntryRaw {
 pub struct DirectoryEntry {
     index: usize,
     //the index in the directory array
-    pub(crate) object_type: ObjectType,
-    pub(crate) name: String,
+    pub object_type: ObjectType,
+    pub name: String,
     color: NodeColor,
-    pub(crate) left_sibling_id: Option<u32>,
-    pub(crate) right_sibling_id: Option<u32>,
-    pub(crate) child_id: Option<u32>,
+    pub left_sibling_id: Option<u32>,
+    pub right_sibling_id: Option<u32>,
+    pub child_id: Option<u32>,
 
-    pub(crate) class_id: Option<String>,
+    pub class_id: Option<String>,
 
     //TODO: do we need this?
     #[derivative(Debug = "ignore")]
@@ -264,12 +264,12 @@ pub struct DirectoryEntry {
 
     creation_time: Option<NaiveDateTime>,
     modification_time: Option<NaiveDateTime>,
-    pub(crate) starting_sector_location: Option<u32>,
-    pub(crate) stream_size: u64,
+    pub starting_sector_location: Option<u32>,
+    pub stream_size: u64,
 }
 
 impl DirectoryEntry {
-    pub(crate) fn from_raw(
+    pub fn from_raw(
         ole_file_header: &OleHeader,
         raw_directory_entry: DirectoryEntryRaw,
         index: usize,
