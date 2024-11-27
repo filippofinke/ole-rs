@@ -108,8 +108,8 @@ impl<'a> EncryptionHandler<'a> for WordEncryptionHandler<'a> {
 mod tests {
     use super::*;
 
-    #[tokio::test]
-    pub async fn there_and_back_again() {
+    #[test]
+    pub fn there_and_back_again() {
         //b'\xec\xa5\xc1\x00G\x00\t\x04\x00\x00\x00\x13\xbf\x004\x00\
         //         ... \x00\x00\x00\x10\x00\x00\x00\x00\x00\x04\x00\x00\x16\x04\x00\x00'
         let bytes = [
@@ -124,8 +124,8 @@ mod tests {
         assert_eq!(packed, bytes);
     }
 
-    #[tokio::test]
-    pub async fn test_parsing_functionality() {
+    #[test]
+    pub fn test_parsing_functionality() {
         //b'\xec\xa5\xc1\x00G\x00\t\x04\x00\x00\x00\x13\xbf\x004\x00\
         //         ... \x00\x00\x00\x10\x00\x00\x00\x00\x00\x04\x00\x00\x16\x04\x00\x00'
         let bytes = [

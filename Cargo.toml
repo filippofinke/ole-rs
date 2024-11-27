@@ -1,8 +1,8 @@
 [package]
 name = "ole"
-version = "0.1.2"
+version = "0.1.3"
 description = "Common files that are used by other crates."
-authors = ["Marirs <marirs@gmail.com>"]
+authors = ["Filippo Finke <filippofinke@protonmail.ch>", "Marirs <marirs@gmail.com>"]
 edition = "2021"
 
 [dependencies]
@@ -12,15 +12,6 @@ epochs = "0.2"
 lazy_static = "1.4"
 packed_struct = "0.10"
 thiserror = "1"
-tokio = { version = "1.20.1", features = ["full"] }
-
-[dev-dependencies]
-tokio-test = "0.4"
-
-[features]
-default = ["async"]
-blocking = []
-async = []
 
 [lib]
 name = "ole"

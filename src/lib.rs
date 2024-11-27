@@ -16,14 +16,14 @@ pub mod util;
 pub type Result<T> = std::result::Result<T, Error>;
 
 use crate::{
-    constants::Readable,
     directory::{DirectoryEntry, DirectoryEntryRaw, ObjectType},
     ftype::OleFileType,
     header::{parse_raw_header, OleHeader},
 };
 use derivative::Derivative;
 use error::{Error, HeaderErrorType};
-use tokio::io::AsyncReadExt;
+use std::io::Cursor;
+use std::io::Read;
 
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
@@ -45,42 +45,9 @@ pub struct OleFile {
 }
 
 impl OleFile {
-    #[cfg(feature = "async")]
-    pub async fn from_file<P: AsRef<std::path::Path>>(file: P) -> Result<Self> {
-        //! Read from a OLE file and parse it
-        //!
-        //! ## Example usage
-        //! ```rust
-        //! use ole::OleFile;
-        //!
-        //! #[tokio::main]
-        //! async fn main() {
-        //! let file = "./data/oledoc1.doc_";
-        //!
-        //!     let res = OleFile::from_file(file).await;
-        //!     assert!(res.is_ok());
-        //! }
-        //! ```
-
-        let f = tokio::fs::File::open(file).await?;
-        Self::parse(f).await
-    }
-
-    #[cfg(feature = "blocking")]
-    pub fn from_file_blocking<P: AsRef<std::path::Path>>(file: P) -> Result<Self> {
-        //! Read from a OLE file and parse it
-        //!
-        //! ## Example usage
-        //! ```rust
-        //! use ole::OleFile;
-        //! let file = "./data/oledoc1.doc_";
-        //!
-        //! let res = OleFile::from_file_blocking(file);
-        //! assert!(res.is_ok())
-        //! ```
-        let rt = tokio::runtime::Runtime::new()?;
-        let f = rt.block_on(tokio::fs::File::open(file))?;
-        rt.block_on(Self::parse(f))
+    pub fn from_bytes(bytes: Vec<u8>) -> Result<Self> {
+        let f = Cursor::new(bytes);
+        Self::parse(f)
     }
 
     pub fn root(&self) -> &DirectoryEntry {
@@ -88,76 +55,18 @@ impl OleFile {
     }
 
     pub fn list_streams(&self) -> Vec<String> {
-        //! List the streams from a parsed OLE file
-        //!
-        //! ## Example usage
-        //! ```rust
-        //!
-        //! #[tokio::main]
-        //! async fn main() {
-        //!     use ole::OleFile;
-        //! let file = "./data/oledoc1.doc_";
-        //!
-        //!     let res = OleFile::from_file(file).await.expect("file not found");
-        //!     let streams = res.list_streams();
-        //!     assert!(!streams.is_empty());
-        //! }
-        //! ```
         self.list_object(ObjectType::Stream)
     }
 
     pub fn list_storage(&self) -> Vec<String> {
-        //! List the Storages from a parsed OLE file
-        //!
-        //! ## Example usage
-        //! ```rust
-        //! use ole::OleFile;
-        //!
-        //! #[tokio::main]
-        //! async fn main() {
-        //! let file = "./data/oledoc1.doc_";
-        //!
-        //!     let res = OleFile::from_file(file).await.expect("file not found");
-        //!     let storage = res.list_storage();
-        //!     assert!(!storage.is_empty());
-        //! }
-        //! ```
         self.list_object(ObjectType::Storage)
     }
 
     pub fn is_encrypted(&self) -> bool {
-        //! Returns true or false if a file is encrypted/password protected
-        //!
-        //! ## Example usage
-        //! ```rust
-        //! use ole::OleFile;
-        //!
-        //! #[tokio::main]
-        //! async fn main() {
-        //! let file = "./data/encryption/encrypted/rc4cryptoapi_password.doc";
-        //!
-        //!     let res = OleFile::from_file(file).await.expect("file not found");
-        //!     assert!(res.is_encrypted());
-        //! }
-        //! ```
         self.encrypted
     }
 
     pub fn is_excel(&self) -> bool {
-        //! Check if the file is an excel file.
-        //!
-        //! ## Example usage
-        //! ```rust
-        //! use ole::OleFile;
-        //!
-        //! #[tokio::main]
-        //! async fn main() {
-        //! let file = "./data/maldoc.xls";
-        //!
-        //!     let res = OleFile::from_file(file).await.expect("file not found");
-        //!     assert!(res.is_excel());
-        //! }
-        //! ```
         return match self.file_type {
             OleFileType::Excel5 | OleFileType::Excel97 => true,
             _ => false,
@@ -304,12 +213,12 @@ impl OleFile {
         }
     }
 
-    async fn parse<R>(mut read: R) -> Result<Self>
+    fn parse<R>(mut read: Cursor<R>) -> Result<Self>
     where
-        R: Readable,
+        R: AsRef<[u8]>,
     {
         // read the header
-        let raw_file_header = parse_raw_header(&mut read).await?;
+        let raw_file_header = parse_raw_header(&mut read)?;
         let file_header = OleHeader::from_raw(raw_file_header);
         let sector_size = file_header.sector_size as usize;
 
@@ -317,7 +226,7 @@ impl OleFile {
         if sector_size > constants::HEADER_LENGTH {
             let should_read_size = sector_size - constants::HEADER_LENGTH;
             let mut should_read = vec![0u8; should_read_size];
-            let did_read_size = read.read(&mut should_read).await?;
+            let did_read_size = read.read(&mut should_read)?;
             if did_read_size != should_read_size {
                 return Err(Error::OleInvalidHeader(HeaderErrorType::NotEnoughBytes(
                     should_read_size,
@@ -334,7 +243,7 @@ impl OleFile {
         let mut sectors = vec![];
         loop {
             let mut buf = vec![0u8; sector_size];
-            match read.read(&mut buf).await {
+            match read.read(&mut buf) {
                 Ok(actually_read_size) if actually_read_size == sector_size => {
                     sectors.push((&buf[0..actually_read_size]).to_vec());
                 }
@@ -511,37 +420,54 @@ impl OleFile {
 
 #[cfg(test)]
 mod tests {
+    use std::fs::File;
+    use std::io::Read;
+
     use super::*;
 
-    #[tokio::test]
-    pub async fn test_word_encryption_detection_on() {
-        let ole_file = OleFile::from_file("./data/encryption/encrypted/rc4cryptoapi_password.doc")
-            .await
-            .unwrap();
+    #[test]
+    pub fn test_word_encryption_detection_on() {
+        // Read file into vector
+        let mut buf = vec![];
+        let mut file = File::open("./data/encryption/encrypted/rc4cryptoapi_password.doc").unwrap();
+        file.read_to_end(&mut buf).unwrap();
+
+        let ole_file = OleFile::from_bytes(buf).expect("file not found");
         assert!(ole_file.is_encrypted());
     }
 
-    #[tokio::test]
-    pub async fn test_word_encryption_detection_off() {
-        let ole_file = OleFile::from_file("./data/encryption/plaintext/plain.doc")
-            .await
-            .expect("file not found");
+    #[test]
+    pub fn test_word_encryption_detection_off() {
+        let mut buf = vec![];
+        let mut file = File::open("./data/encryption/plaintext/plain.doc").unwrap();
+
+        file.read_to_end(&mut buf).unwrap();
+
+        let ole_file = OleFile::from_bytes(buf).expect("file not found");
+
         assert!(!ole_file.is_encrypted());
     }
 
-    #[tokio::test]
-    pub async fn test_excel_encryption_detection_on() {
-        let ole_file = OleFile::from_file("./data/encryption/encrypted/rc4cryptoapi_password.xls")
-            .await
-            .expect("file not found");
+    #[test]
+    pub fn test_excel_encryption_detection_on() {
+        let mut buf = vec![];
+        let mut file = File::open("./data/encryption/encrypted/rc4cryptoapi_password.xls").unwrap();
+
+        file.read_to_end(&mut buf).unwrap();
+
+        let ole_file = OleFile::from_bytes(buf).expect("file not found");
         assert!(ole_file.is_encrypted());
     }
 
-    #[tokio::test]
-    pub async fn test_excel_encryption_detection_off() {
-        let ole_file = OleFile::from_file("./data/encryption/plaintext/plain.xls")
-            .await
-            .unwrap();
+    #[test]
+    pub fn test_excel_encryption_detection_off() {
+        let mut buf = vec![];
+        let mut file = File::open("./data/encryption/plaintext/plain.xls").unwrap();
+
+        file.read_to_end(&mut buf).unwrap();
+
+        let ole_file = OleFile::from_bytes(buf).expect("file not found");
+
         assert!(!ole_file.is_encrypted());
     }
 }

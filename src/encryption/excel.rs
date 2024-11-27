@@ -378,11 +378,6 @@ impl<'a> BIFFSTream<'a> {
         }
     }
 
-    pub fn has_record(&mut self, target: u16) -> bool {
-        self.reset();
-        self.into_iter().any(|item| item.num == target)
-    }
-
     pub fn skip_to(&mut self, target: u16) -> Option<BiffItem> {
         self.reset();
         self.into_iter().find(|item| item.num == target)
@@ -396,7 +391,6 @@ impl<'a> BIFFSTream<'a> {
 #[derive(Debug)]
 struct BiffItem<'a> {
     pub num: u16,
-    pub size: u16,
     pub data: &'a [u8],
 }
 
@@ -418,7 +412,6 @@ impl<'a> Iterator for BIFFSTream<'a> {
         self.iterator_position = Some(end);
         Some(BiffItem {
             num,
-            size,
             data: &self.data[end_of_position_slice..end],
         })
     }

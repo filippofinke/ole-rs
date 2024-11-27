@@ -1,11 +1,11 @@
 use crate::{
-    constants::{self, Readable},
+    constants::{self},
     error::{Error, HeaderErrorType},
     Result,
 };
 use derivative::Derivative;
 use std::array::TryFromSliceError;
-use tokio::io::AsyncReadExt;
+use std::io::{Cursor, Read};
 
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
@@ -141,12 +141,12 @@ pub struct RawFileHeader {
     sector_allocation_table_head: Vec<u32>,
 }
 
-pub(crate) async fn parse_raw_header<R>(read: &mut R) -> Result<RawFileHeader>
+pub(crate) fn parse_raw_header<R>(read: &mut Cursor<R>) -> Result<RawFileHeader>
 where
-    R: Readable,
+    R: AsRef<[u8]>,
 {
     let mut header = [0u8; constants::HEADER_LENGTH];
-    let bytes_read = read.read(&mut header).await?;
+    let bytes_read = read.read(&mut header)?;
     if bytes_read != constants::HEADER_LENGTH {
         return Err(Error::OleInvalidHeader(HeaderErrorType::NotEnoughBytes(
             constants::HEADER_LENGTH,
