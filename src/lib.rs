@@ -55,7 +55,7 @@ impl OleFile {
         //!
         //! #[tokio::main]
         //! async fn main() {
-        //! let file = "../data/oledoc1.doc_";
+        //! let file = "./data/oledoc1.doc_";
         //!
         //!     let res = OleFile::from_file(file).await;
         //!     assert!(res.is_ok());
@@ -73,7 +73,7 @@ impl OleFile {
         //! ## Example usage
         //! ```rust
         //! use ole::OleFile;
-        //! let file = "../data/oledoc1.doc_";
+        //! let file = "./data/oledoc1.doc_";
         //!
         //! let res = OleFile::from_file_blocking(file);
         //! assert!(res.is_ok())
@@ -96,7 +96,7 @@ impl OleFile {
         //! #[tokio::main]
         //! async fn main() {
         //!     use ole::OleFile;
-        //! let file = "../data/oledoc1.doc_";
+        //! let file = "./data/oledoc1.doc_";
         //!
         //!     let res = OleFile::from_file(file).await.expect("file not found");
         //!     let streams = res.list_streams();
@@ -115,7 +115,7 @@ impl OleFile {
         //!
         //! #[tokio::main]
         //! async fn main() {
-        //! let file = "../data/oledoc1.doc_";
+        //! let file = "./data/oledoc1.doc_";
         //!
         //!     let res = OleFile::from_file(file).await.expect("file not found");
         //!     let storage = res.list_storage();
@@ -134,7 +134,7 @@ impl OleFile {
         //!
         //! #[tokio::main]
         //! async fn main() {
-        //! let file = "../data/encryption/encrypted/rc4cryptoapi_password.doc";
+        //! let file = "./data/encryption/encrypted/rc4cryptoapi_password.doc";
         //!
         //!     let res = OleFile::from_file(file).await.expect("file not found");
         //!     assert!(res.is_encrypted());
@@ -152,7 +152,7 @@ impl OleFile {
         //!
         //! #[tokio::main]
         //! async fn main() {
-        //! let file = "../data/maldoc.xls";
+        //! let file = "./data/maldoc.xls";
         //!
         //!     let res = OleFile::from_file(file).await.expect("file not found");
         //!     assert!(res.is_excel());
@@ -515,7 +515,7 @@ mod tests {
 
     #[tokio::test]
     pub async fn test_word_encryption_detection_on() {
-        let ole_file = OleFile::from_file("../data/encryption/encrypted/rc4cryptoapi_password.doc")
+        let ole_file = OleFile::from_file("./data/encryption/encrypted/rc4cryptoapi_password.doc")
             .await
             .unwrap();
         assert!(ole_file.is_encrypted());
@@ -523,7 +523,7 @@ mod tests {
 
     #[tokio::test]
     pub async fn test_word_encryption_detection_off() {
-        let ole_file = OleFile::from_file("../data/encryption/plaintext/plain.doc")
+        let ole_file = OleFile::from_file("./data/encryption/plaintext/plain.doc")
             .await
             .expect("file not found");
         assert!(!ole_file.is_encrypted());
@@ -531,7 +531,7 @@ mod tests {
 
     #[tokio::test]
     pub async fn test_excel_encryption_detection_on() {
-        let ole_file = OleFile::from_file("../data/encryption/encrypted/rc4cryptoapi_password.xls")
+        let ole_file = OleFile::from_file("./data/encryption/encrypted/rc4cryptoapi_password.xls")
             .await
             .expect("file not found");
         assert!(ole_file.is_encrypted());
@@ -539,7 +539,7 @@ mod tests {
 
     #[tokio::test]
     pub async fn test_excel_encryption_detection_off() {
-        let ole_file = OleFile::from_file("../data/encryption/plaintext/plain.xls")
+        let ole_file = OleFile::from_file("./data/encryption/plaintext/plain.xls")
             .await
             .unwrap();
         assert!(!ole_file.is_encrypted());
